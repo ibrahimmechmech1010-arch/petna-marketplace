@@ -13,8 +13,11 @@ Ouvrez `index.html` dans un navigateur. Aucune installation ni étape de compila
 - `boutique.html` — catalogue, panier et commande de démonstration
 - `services.html` — annuaire de professionnels fictifs
 - `conseils.html` — articles de démonstration
+- `admin.html` — tableau de bord de gestion en mode démonstration
 
 Les interactions utilisent des données fictives. Les commandes, paiements, contacts et demandes d'adoption ne sont pas transmis à un service réel.
+
+La page d’administration est une maquette front-end sans authentification ni base de données. Ses ajouts, modifications et statuts sont enregistrés uniquement dans le stockage local du navigateur.
 
 ## Déploiement
 

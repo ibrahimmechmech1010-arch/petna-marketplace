@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="icon" type="image/png" sizes="128x128" href="assets/petna-favicon.png">
+  <link rel="shortcut icon" href="assets/petna-favicon.ico">
+  <meta name="theme-color" content="#f1f8fb">
+  <title>Administration — Petna</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="admin-body">
+  <div class="admin-shell">
+    <aside class="admin-sidebar">
+      <a class="admin-brand" href="index.html" aria-label="Petna, retour au site">
+        <img src="assets/petna-logo.png" alt="Petna">
+        <span>ESPACE ADMIN</span>
+      </a>
+      <div class="admin-menu-label">MENU PRINCIPAL</div>
+      <nav class="admin-nav" aria-label="Navigation administration">
+        <button class="active" data-view="overview"><span>⌂</span>Vue d’ensemble</button>
+        <button data-view="animals"><span>♡</span>Adoptions <i id="animal-nav-count">0</i></button>
+        <button data-view="products"><span>▧</span>Produits <i id="product-nav-count">0</i></button>
+        <button data-view="providers"><span>✳</span>Professionnels <i id="provider-nav-count">0</i></button>
+        <button data-view="orders"><span>▤</span>Commandes démo</button>
+      </nav>
+      <div class="admin-sidebar-bottom">
+        <div class="admin-help-card"><span>UN COUP DE PATTE</span><p>Besoin de revenir au site public ?</p><a href="index.html">Voir le site ↗</a></div>
+        <div class="admin-profile"><span class="admin-avatar">A</span><span><b>Administrateur</b><small>Mode démonstration</small></span><span class="admin-profile-more">···</span></div>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <div class="admin-breadcrumb"><span>Petna</span><b>/</b><strong id="admin-current-label">Vue d’ensemble</strong></div>
+        <div class="admin-top-actions"><span class="admin-demo-pill"><i></i> Démonstration</span><button class="admin-icon-button" type="button" aria-label="Notifications">♧<em></em></button><span class="admin-avatar admin-avatar-small">A</span></div>
+      </header>
+
+      <section class="admin-content">
+        <div class="admin-welcome">
+          <div><span class="eyebrow">LUNDI · ESPACE DE GESTION</span><h1 id="admin-title">Bonjour, admin <span>👋</span></h1><p id="admin-subtitle">Voici ce qui se passe sur votre marketplace aujourd’hui.</p></div>
+          <button class="button button-dark admin-create-button" id="admin-create" type="button"><span>＋</span> Ajouter un élément</button>
+        </div>
+
+        <div class="admin-view" id="overview-view">
+          <div class="admin-metrics">
+            <article class="admin-metric"><div><span>Compagnons publiés</span><b class="admin-metric-icon blue">♡</b></div><strong id="animal-total">0</strong><small><span class="metric-up">↑</span> Fiches de démonstration</small><div class="metric-sparkline blue-line"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
+            <article class="admin-metric"><div><span>Produits catalogue</span><b class="admin-metric-icon orange">▧</b></div><strong id="product-total">0</strong><small><span class="metric-up">↑</span> Articles disponibles</small><div class="metric-sparkline orange-line"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
+            <article class="admin-metric"><div><span>Professionnels</span><b class="admin-metric-icon green">✳</b></div><strong id="provider-total">0</strong><small><span class="metric-up">↑</span> Profils partenaires</small><div class="metric-sparkline green-line"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
+            <article class="admin-metric"><div><span>Commandes démo</span><b class="admin-metric-icon violet">↗</b></div><strong>24</strong><small><span class="metric-neutral">●</span> Valeur simulée · 1 248 TND</small><div class="metric-sparkline violet-line"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
+          </div>
+
+          <div class="admin-overview-grid">
+            <article class="admin-panel admin-chart-panel">
+              <div class="admin-panel-heading"><div><h2>Activité de la boutique</h2><p>Commandes simulées sur les 7 derniers jours</p></div><button class="admin-select-static" type="button">Cette semaine⌄</button></div>
+              <div class="admin-chart-legend"><span><i class="legend-blue"></i>Commandes</span><span><i class="legend-orange"></i>Visites</span></div>
+              <div class="admin-chart" aria-label="Graphique de démonstration de l’activité de la semaine"><div class="chart-y-labels"><span>80</span><span>60</span><span>40</span><span>20</span><span>0</span></div><div class="chart-area"><div class="chart-gridlines"><i></i><i></i><i></i><i></i><i></i></div><div class="chart-bars"><div><i style="--h:43%"></i><b style="--h:67%"></b><small>Lun</small></div><div><i style="--h:57%"></i><b style="--h:76%"></b><small>Mar</small></div><div><i style="--h:39%"></i><b style="--h:60%"></b><small>Mer</small></div><div><i style="--h:68%"></i><b style="--h:88%"></b><small>Jeu</small></div><div><i style="--h:51%"></i><b style="--h:72%"></b><small>Ven</small></div><div><i style="--h:78%"></i><b style="--h:95%"></b><small>Sam</small></div><div><i style="--h:60%"></i><b style="--h:82%"></b><small>Dim</small></div></div></div></div>
+              <div class="admin-chart-note">Données fictives destinées à illustrer le tableau de bord.</div>
+            </article>
+            <article class="admin-panel admin-activity-panel"><div class="admin-panel-heading"><div><h2>Activité récente</h2><p>Événements de démonstration</p></div><span class="admin-live-dot"></span></div><div class="admin-activity-list"><div><span class="activity-icon peach">♡</span><p><b>Nouvelle fiche compagnon</b><small>Luna · Association Patte Solidaire</small></p><time>Il y a 12 min</time></div><div><span class="activity-icon mint">▧</span><p><b>Produit ajouté au catalogue</b><small>Balle corde à mâcher · 14 TND</small></p><time>Il y a 38 min</time></div><div><span class="activity-icon blue">✳</span><p><b>Profil professionnel mis à jour</b><small>Clinique des Jardins · Ariana</small></p><time>Il y a 1 h</time></div><div><span class="activity-icon lilac">↗</span><p><b>Commande de démonstration</b><small>CMD-2026-024 · 76,50 TND</small></p><time>Il y a 2 h</time></div></div><button class="admin-view-all" data-view="orders">Voir l’activité complète <span>→</span></button></article>
+          </div>
+
+          <article class="admin-panel admin-table-panel"><div class="admin-panel-heading"><div><h2>Fiches d’adoption récentes</h2><p>Les derniers compagnons ajoutés à la marketplace</p></div><button class="admin-text-action" data-view="animals">Voir toutes les fiches <span>→</span></button></div><div class="admin-table-wrap"><table><thead><tr><th>COMPAGNON</th><th>REFUGE</th><th>VILLE</th><th>STATUT</th><th></th></tr></thead><tbody id="recent-animal-rows"></tbody></table></div></article>
+        </div>
+
+        <div class="admin-view" id="manage-view" hidden>
+          <article class="admin-panel admin-table-panel">
+            <div class="admin-panel-heading admin-manage-heading"><div><h2 id="manage-heading">Gestion</h2><p id="manage-description"></p></div><div class="admin-manage-tools"><label class="admin-search"><span>⌕</span><input id="admin-search" type="search" placeholder="Rechercher…" aria-label="Rechercher dans la liste"></label><select id="admin-filter" aria-label="Filtrer la liste"><option value="">Tous les statuts</option><option>Publié</option><option>Brouillon</option></select></div></div>
+            <div class="admin-table-wrap"><table><thead id="manage-table-head"></thead><tbody id="manage-table-body"></tbody></table></div>
+            <div class="admin-table-footer"><span id="manage-count"></span><span>Affichage des données de démonstration</span></div>
+          </article>
+          <div class="admin-info-strip"><span>ⓘ</span><p>Les modifications effectuées ici sont enregistrées uniquement dans ce navigateur. Cette page de démonstration ne possède pas de connexion sécurisée et ne gère aucun contenu en base de données.</p></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="admin-dialog" id="admin-dialog"><form method="dialog" id="admin-form"><div class="admin-dialog-head"><div><span class="eyebrow">ESPACE ADMIN</span><h2 id="admin-dialog-title">Ajouter un élément</h2></div><button class="admin-dialog-close" value="cancel" aria-label="Fermer">×</button></div><p class="admin-dialog-intro" id="admin-dialog-intro">Créez une nouvelle fiche de démonstration.</p><div id="admin-form-fields" class="admin-form-fields"></div><div class="admin-dialog-actions"><button class="admin-cancel" value="cancel">Annuler</button><button class="button button-dark" id="admin-save" value="default">Enregistrer l’élément <span>→</span></button></div></form></dialog>
+  <div class="admin-toast" id="admin-toast" role="status" aria-live="polite"></div>
+  <script src="js/data.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
