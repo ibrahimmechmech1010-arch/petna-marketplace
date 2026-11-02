@@ -9,5 +9,9 @@ max_rows = 1000
 [db]
 major_version = 15
 
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
 [studio]
 enabled = true

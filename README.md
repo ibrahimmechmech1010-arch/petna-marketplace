@@ -22,12 +22,15 @@ La page d’administration fonctionne en mode local tant que Supabase n'est pas 
 ## Supabase
 
 - Le schéma initial, les politiques Row Level Security et les tables d'annonces, catalogue, professionnels, articles, demandes et commandes se trouvent dans `supabase/migrations/`.
+- Le contenu public de démonstration est dans `supabase/seed.sql`. Il utilise uniquement des commandes LMD (`INSERT ... ON CONFLICT`) et des identifiants fixes pour éviter les doublons.
 - Le projet est préparé dans `supabase/config.toml`. Créez ou connectez un projet Supabase, liez le dépôt avec le CLI, puis appliquez la migration avec `supabase db push`.
 - Remplissez `url` et `publishableKey` dans `js/supabase-config.js` à partir des paramètres API du projet. La clé publishable est destinée au navigateur et reste limitée par RLS. N'utilisez jamais une clé `secret` ou `service_role` dans le site.
 - Créez le compte initial dans Supabase Auth, puis attribuez-lui le rôle admin depuis le SQL Editor : `update public.profiles set role = 'admin' where id = (select id from auth.users where email = 'VOTRE_EMAIL');`.
 - Le catalogue public lit les entrées publiées. Les formulaires adoption et partenariat créent des demandes dans Supabase lorsqu'il est configuré. Le paiement et la création de commandes restent simulés.
 
 Le navigateur charge `supabase-js` depuis jsDelivr uniquement lorsque l'URL et la clé publishable sont renseignées.
+
+Pour un nouveau projet de démonstration, `supabase db push --include-seed` applique les migrations puis insère les contenus d’exemple. N’utilisez pas ce jeu de démonstration pour remplacer les données d’un site en production.
 
 ## Déploiement
 
