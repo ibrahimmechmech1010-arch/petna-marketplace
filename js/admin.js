@@ -23,10 +23,41 @@
   let current = 'overview';
   let editingId = null;
   let toastTimer;
+  let dbClient = null;
+  let activeUser = null;
+  let initialized = false;
   const $ = selector => document.querySelector(selector);
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-  const safeStatus = (kind, item) => statuses[`${kind}:${item.id}`] || 'Publié';
+  const safeStatus = (kind, item) => dbClient
+    ? ({published:'Publié',archived:'Archivé'}[item.status] || 'Brouillon')
+    : statuses[`${kind}:${item.id}`] || 'Publié';
+  function fromDatabase(kind,row) {
+    if(kind==='animals') return {id:row.id,name:row.name,species:row.species,age:row.age,city:row.city,shelter:row.shelter,image:row.image_url,short:row.summary,temperament:row.temperament,care:row.care,conditions:row.adoption_conditions,status:row.status};
+    if(kind==='products') return {id:row.id,name:row.name,category:row.category,price:Number(row.price),seller:row.seller,image:row.image_url,desc:row.description,promo:row.is_featured,status:row.status};
+    if(kind==='providers') return {id:row.id,name:row.name,type:row.type,city:row.city,image:row.image_url,desc:row.description,services:row.services||[],hours:row.hours,contact:row.contact,status:row.status};
+    return row;
+  }
+  function toDatabase(kind,values,previous={}) {
+    const status=previous.status||'draft';
+    if(kind==='animals') return {name:values.name,species:values.species,age:values.age,city:values.city,shelter:values.shelter,image_url:values.image,summary:values.short,temperament:values.temperament||previous.temperament||'',care:values.care||previous.care||'',adoption_conditions:values.conditions||previous.conditions||'',status};
+    if(kind==='products') return {name:values.name,category:values.category,price:Number(values.price),seller:values.seller,image_url:values.image,description:values.desc,is_featured:Boolean(previous.promo),status};
+    return {name:values.name,type:values.type,city:values.city,image_url:values.image,description:values.desc,services:previous.services||[],hours:previous.hours||'',contact:values.contact||'',status};
+  }
+  async function loadDatabaseData() {
+    for(const kind of Object.keys(sections)) {
+      const {data:rows,error}=await dbClient.from(kind).select('*').order('created_at',{ascending:false});
+      if(error) throw error;
+      data[kind].splice(0,data[kind].length,...(rows||[]).map(row=>fromDatabase(kind,row)));
+    }
+    const {data:orders,error}=await dbClient.from('orders').select('id,reference,customer_name,total,status,created_at').order('created_at',{ascending:false});
+    if(error) throw error;
+    currentOrders=(orders||[]).map(order=>({id:order.reference,customer:order.customer_name,items:'Voir les articles',total:`${Number(order.total).toFixed(2).replace('.',',')} TND`,date:new Date(order.created_at).toLocaleString('fr-TN'),status:({pending:'À traiter',confirmed:'Confirmée',shipped:'Expédiée',delivered:'Livrée',cancelled:'Annulée'}[order.status]||order.status)}));
+    $('#order-total').textContent=String((orders||[]).length);
+    $('#order-volume').textContent=`Total des commandes · ${(orders||[]).reduce((sum,order)=>sum+Number(order.total||0),0).toFixed(2).replace('.',',')} TND`;
+  }
+  let currentOrders=demoOrders;
   const persist = () => {
+    if(dbClient) return;
     localStorage.setItem(storageKey, JSON.stringify({
       added: Object.fromEntries(Object.keys(sections).map(kind => [kind, data[kind].filter(item => String(item.id).startsWith('admin-'))])),
       overrides: Object.fromEntries(Object.keys(sections).map(kind => [kind, Object.fromEntries(data[kind].filter(item => !String(item.id).startsWith('admin-')).map(item => [item.id, item]))])),
@@ -62,7 +93,7 @@
     return `<tr><td><div class="admin-name-cell">${imageThumb(item)}<span><b>${escape(item.name)}</b><small>${escape(item.type)}</small></span></div></td><td>${escape(item.type)}</td><td>${escape(item.city)}</td><td>${escape(item.contact||'—')}</td><td>${status}</td><td>${actions}</td></tr>`;
   }
   function orderRows(filter) {
-    const rows=demoOrders.filter(order=>`${order.id} ${order.customer} ${order.items} ${order.status}`.toLocaleLowerCase('fr').includes(filter));
+    const rows=currentOrders.filter(order=>`${order.id} ${order.customer} ${order.items} ${order.status}`.toLocaleLowerCase('fr').includes(filter));
     $('#manage-table-head').innerHTML='<tr><th>RÉFÉRENCE</th><th>CLIENT</th><th>ARTICLES</th><th>DATE</th><th>TOTAL</th><th>STATUT</th></tr>';
     $('#manage-table-body').innerHTML=rows.map(order=>`<tr><td><b class="order-reference">${order.id}</b></td><td>${order.customer}</td><td>${order.items}</td><td>${order.date}</td><td><b>${order.total}</b></td><td><span class="admin-status ${order.status==='À traiter'?'draft':'published'}"><i></i>${order.status}</span></td></tr>`).join('')||'<tr><td colspan="6" class="admin-empty">Aucune commande ne correspond à votre recherche.</td></tr>';
     $('#manage-count').textContent=`${rows.length} commande${rows.length>1?'s':''} affichée${rows.length>1?'s':''}`;
@@ -115,39 +146,94 @@
     $('#admin-save').innerHTML=item?'Enregistrer les changements <span>→</span>':'Enregistrer l’élément <span>→</span>';
     $('#admin-dialog').showModal();
   }
-  function saveForm(event) {
+  async function saveForm(event) {
     if(event.submitter?.value==='cancel') return;
     event.preventDefault();
     if(!event.currentTarget.reportValidity()) return;
     const kind=current==='overview'?'animals':current, formData=new FormData(event.currentTarget), values=Object.fromEntries(formData.entries());
     if(kind==='products') values.price=Number(values.price);
-    if(editingId){const entry=data[kind].find(item=>String(item.id)===String(editingId));Object.assign(entry,values);}
-    else {data[kind].unshift({id:`admin-${Date.now()}`,...values});}
+    if(editingId){
+      const entry=data[kind].find(item=>String(item.id)===String(editingId));
+      if(dbClient){
+        const {data:saved,error}=await dbClient.from(kind).update(toDatabase(kind,values,entry)).eq('id',editingId).select().single();
+        if(error){showToast('La modification n’a pas été enregistrée. Vérifiez votre connexion.');console.error(error);return;}
+        Object.assign(entry,fromDatabase(kind,saved));
+      } else Object.assign(entry,values);
+    } else if(dbClient){
+      const payload={...toDatabase(kind,values),created_by:activeUser.id};
+      const {data:saved,error}=await dbClient.from(kind).insert(payload).select().single();
+      if(error){showToast('La fiche n’a pas été enregistrée. Vérifiez les champs.');console.error(error);return;}
+      data[kind].unshift(fromDatabase(kind,saved));
+    } else {data[kind].unshift({id:`admin-${Date.now()}`,...values});}
     persist(); $('#admin-dialog').close(); showToast(editingId?'Fiche mise à jour dans cette démonstration.':'Élément ajouté dans cette démonstration.');
     refreshCounts();renderRecent();if(current!=='overview')renderManage();
   }
-  function removeItem(kind,id) {
+  async function removeItem(kind,id) {
     const item=data[kind]?.find(entry=>String(entry.id)===String(id)); if(!item)return;
     if(!window.confirm(`Supprimer « ${item.name} » de cette démonstration ?`))return;
+    if(dbClient){
+      const {error}=await dbClient.from(kind).delete().eq('id',id);
+      if(error){showToast('La suppression a échoué. Vérifiez vos droits administrateur.');console.error(error);return;}
+    }
     data[kind]=data[kind].filter(entry=>String(entry.id)!==String(id));
     if(!String(id).startsWith('admin-')){deleted[kind]=deleted[kind]||[];if(!deleted[kind].includes(id))deleted[kind].push(id);}
     delete statuses[`${kind}:${id}`];persist();refreshCounts();renderRecent();if(current!=='overview')renderManage();showToast('Élément supprimé de cette démonstration.');
   }
   function init() {
+    if(initialized)return;
+    initialized=true;
     refreshCounts();renderRecent();
     document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>setView(button.dataset.view)));
     $('#admin-search').addEventListener('input',renderManage);$('#admin-filter').addEventListener('change',renderManage);
     $('#admin-create').addEventListener('click',()=>openForm(current==='overview'?'animals':current));
     $('#admin-form').addEventListener('submit',saveForm);
     $('#admin-dialog').addEventListener('click',event=>{if(event.target===$('#admin-dialog'))$('#admin-dialog').close();});
-    document.addEventListener('click',event=>{
+    document.addEventListener('click',async event=>{
       const edit=event.target.closest('[data-edit]'), remove=event.target.closest('[data-delete]');
       if(edit) openForm(edit.dataset.kind,edit.dataset.id);
       if(remove) removeItem(remove.dataset.kind,remove.dataset.id);
       const toggle=event.target.closest('[data-toggle-status]');
-      if(toggle){const kind=toggle.dataset.kind,id=toggle.dataset.toggleStatus;statuses[`${kind}:${id}`]=safeStatus(kind,{id})==='Publié'?'Brouillon':'Publié';persist();refreshCounts();renderRecent();if(current!=='overview')renderManage();showToast('Statut mis à jour pour cette démonstration.');}
+      if(toggle){
+        const kind=toggle.dataset.kind,id=toggle.dataset.toggleStatus,item=data[kind].find(entry=>String(entry.id)===String(id));
+        const next=safeStatus(kind,item)==='Publié'?'draft':'published';
+        if(dbClient){const {error}=await dbClient.from(kind).update({status:next}).eq('id',id);if(error){showToast('Le statut n’a pas pu être mis à jour.');console.error(error);return;}item.status=next;}
+        else statuses[`${kind}:${id}`]=next==='published'?'Publié':'Brouillon';
+        persist();refreshCounts();renderRecent();if(current!=='overview')renderManage();showToast('Statut mis à jour.');
+      }
     });
     setView('overview');
   }
-  init();
+  function showLogin(message='',allowSignout=false) {
+    $('#admin-shell').hidden=true;$('#admin-login-screen').hidden=false;
+    $('#admin-auth-message').textContent=message||'Connectez-vous avec le compte administrateur associé à ce projet Supabase.';
+    $('#admin-signout').hidden=!allowSignout;
+  }
+  async function start() {
+    const client=await (window.PETNA_BACKEND_READY||Promise.resolve(null));
+    if(!client){$('#admin-shell').hidden=false;$('#admin-login-screen').hidden=true;$('.admin-demo-pill').innerHTML='<i></i> Démonstration locale';init();return;}
+    dbClient=client;
+    const {data:sessionData,error:sessionError}=await dbClient.auth.getSession();
+    if(sessionError){showLogin('Impossible de vérifier la session Supabase. Réessayez.');return;}
+    const session=sessionData.session;
+    if(!session){showLogin();return;}
+    const {data:profile,error:profileError}=await dbClient.from('profiles').select('role,display_name').eq('id',session.user.id).single();
+    if(profileError||profile?.role!=='admin'){showLogin('Ce compte ne possède pas le rôle administrateur. Demandez à un propriétaire du projet de l’ajouter.',true);return;}
+    activeUser=session.user;
+    try{await loadDatabaseData();}catch(error){console.error(error);showLogin('Le tableau de bord n’a pas pu charger les données. Vérifiez la migration Supabase et les autorisations.',true);return;}
+    $('#admin-shell').hidden=false;$('#admin-login-screen').hidden=true;$('.admin-demo-pill').innerHTML='<i></i> Supabase connecté';
+    $('.admin-profile b').textContent=profile.display_name||session.user.email||'Administrateur';
+    $('.admin-profile small').textContent='Administrateur connecté';
+    init();
+  }
+  $('#admin-signout').addEventListener('click',async()=>{if(dbClient){await dbClient.auth.signOut();window.location.reload();}});
+  $('#admin-login-form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    if(!dbClient){showLogin('Le projet Supabase n’est pas configuré.');return;}
+    const form=new FormData(event.currentTarget);
+    $('#admin-auth-message').textContent='Connexion en cours…';
+    const {error}=await dbClient.auth.signInWithPassword({email:form.get('email'),password:form.get('password')});
+    if(error){showLogin('Connexion impossible : vérifiez l’adresse e-mail et le mot de passe.');return;}
+    await start();
+  });
+  start();
 })();
